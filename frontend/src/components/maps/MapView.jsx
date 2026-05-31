@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polygon } from 'react-leaflet';
 import L from 'leaflet';
 import { Link } from 'react-router-dom';
 
@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 const createCustomIcon = (status) => {
   let color = '#5cc1cb'; // brand/cyan
   let glow = 'rgba(92, 193, 203, 0.4)';
-  if (status === 'pending') {
+  if (status === 'pending' || status === 'draft') {
     color = '#f59e0b';
     glow = 'rgba(245, 158, 11, 0.4)';
   } else if (status === 'rejected') {
@@ -32,8 +32,7 @@ const createCustomIcon = (status) => {
 };
 
 export default function MapView({ projects = [], height = '400px', center = [19.076, 72.877], zoom = 5 }) {
-  // Safe center calculation or default to India coordinates (where many mangrove MRVs reside)
-  const defaultCenter = [21.5, 79.0]; 
+  const defaultCenter = [21.5, 79.0];
 
   return (
     <div className="dark-leaflet w-full overflow-hidden rounded-2xl relative" style={{ height }}>
@@ -49,32 +48,49 @@ export default function MapView({ projects = [], height = '400px', center = [19.
         />
         {projects.map((project) => {
           if (!project.latitude || !project.longitude) return null;
+          
+          const statusColors = {
+            draft: '#f59e0b',
+            pending: '#f59e0b',
+            verified: '#10b981',
+            rejected: '#f43f5e'
+          };
+          
+          const pColor = statusColors[project.status] || '#5cc1cb';
+
           return (
-            <Marker 
-              key={project.id} 
-              position={[parseFloat(project.latitude), parseFloat(project.longitude)]}
-              icon={createCustomIcon(project.status)}
-            >
-              <Popup>
-                <div className="p-1 flex flex-col gap-1.5 min-w-[180px]">
-                  <h4 className="font-bold text-slate-100 text-sm m-0 border-b border-brand-500/10 pb-1">{project.title}</h4>
-                  <div className="text-[11px] text-slate-300 flex flex-col gap-0.5">
-                    <p className="m-0"><strong className="text-brand-400">Species:</strong> {project.species || 'N/A'}</p>
-                    <p className="m-0"><strong className="text-brand-400">Area:</strong> {project.area_hectares} Ha</p>
-                    <p className="m-0"><strong className="text-brand-400">Status:</strong> <span className="uppercase text-[9px] font-bold">{project.status}</span></p>
+            <React.Fragment key={project.id}>
+              {/* Center point marker */}
+              <Marker 
+                position={[parseFloat(project.latitude), parseFloat(project.longitude)]}
+                icon={createCustomIcon(project.status)}
+              >
+                <Popup>
+                  <div className="p-1 flex flex-col gap-1.5 min-w-[180px]">
+                    <h4 className="font-bold text-slate-100 text-sm m-0 border-b border-brand-500/10 pb-1">{project.title}</h4>
+                    <div className="text-[11px] text-slate-300 flex flex-col gap-0.5">
+                      <p className="m-0"><strong className="text-brand-400">Type:</strong> {project.restoration_type || 'Restoration site'}</p>
+                      <p className="m-0"><strong className="text-brand-400">Species:</strong> {project.species || 'N/A'}</p>
+                      <p className="m-0"><strong className="text-brand-400">Area:</strong> {project.area_hectares} Ha</p>
+                      <p className="m-0"><strong className="text-brand-400">Status:</strong> <span className="uppercase text-[9px] font-bold">{project.status}</span></p>
+                    </div>
                   </div>
-                  <Link 
-                    to={`/dashboard`} // Since we'll let users view details on dashboard or page
-                    className="mt-2 text-center text-[10px] font-bold uppercase tracking-wider bg-brand-400 text-darkbg-300 py-1.5 rounded hover:bg-brand-300 transition-colors"
-                    onClick={() => {
-                      // Custom routing hook if needed or state
-                    }}
-                  >
-                    Details
-                  </Link>
-                </div>
-              </Popup>
-            </Marker>
+                </Popup>
+              </Marker>
+              
+              {/* Boundary polygon drawing */}
+              {project.boundary_polygon && Array.isArray(project.boundary_polygon) && project.boundary_polygon.length > 2 && (
+                <Polygon
+                  positions={project.boundary_polygon}
+                  pathOptions={{
+                    color: pColor,
+                    fillColor: pColor,
+                    fillOpacity: 0.15,
+                    weight: 2
+                  }}
+                />
+              )}
+            </React.Fragment>
           );
         })}
       </MapContainer>

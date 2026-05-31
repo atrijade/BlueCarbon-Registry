@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { projectService } from '../services/api';
 import Card from '../components/common/Card';
 import Badge from '../components/common/Badge';
 import Button from '../components/common/Button';
+import MapView from '../components/maps/MapView';
 import { 
   TreePine, 
   MapPin, 
@@ -13,11 +15,12 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronUp,
-  FolderOpen
+  FolderOpen,
+  Edit3
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 export default function MyProjects() {
+  const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -48,6 +51,10 @@ export default function MyProjects() {
     setExpandedProjectId(prev => prev === id ? null : id);
   };
 
+  const handleEditDraft = (project) => {
+    navigate('/projects/create', { state: { editProject: project } });
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh]">
@@ -56,6 +63,12 @@ export default function MyProjects() {
       </div>
     );
   }
+
+  const restorationLabels = {
+    mangrove: 'Mangrove Forest',
+    seagrass: 'Seagrass Meadow',
+    salt_marsh: 'Salt Marsh'
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -72,7 +85,7 @@ export default function MyProjects() {
           to="/projects/create"
           className="bg-brand-400 text-darkbg-300 font-bold px-4 py-2 rounded-xl text-xs uppercase tracking-wider hover:bg-brand-300 transition-all text-center self-start sm:self-auto shadow-lg shadow-brand-400/10"
         >
-          Submit Restoration Node
+          Register Restoration Node
         </Link>
       </div>
 
@@ -85,7 +98,7 @@ export default function MyProjects() {
       {projects.length === 0 ? (
         <Card hoverable={false} className="flex flex-col items-center justify-center p-12 text-center max-w-xl mx-auto mt-6">
           <FolderOpen className="w-16 h-16 text-slate-600 mb-4 animate-float" />
-          <h3 className="text-lg font-bold text-slate-100">No Submitted Nodes</h3>
+          <h3 className="text-lg font-bold text-slate-100">No Registered Nodes</h3>
           <p className="text-xs text-slate-400 mt-2 max-w-sm">
             You haven't registered any restoration locations on BlueCarbon-Registry yet. Create your first mangrove or seagrass monitoring site to begin.
           </p>
@@ -99,6 +112,7 @@ export default function MyProjects() {
         <div className="flex flex-col gap-4">
           {projects.map((project) => {
             const isExpanded = expandedProjectId === project.id;
+            const isDraft = project.status === 'draft';
             const verified = project.status === 'verified';
             
             return (
@@ -107,7 +121,10 @@ export default function MyProjects() {
                 hoverable={false} 
                 className={`
                   border-l-4 transition-all duration-300
-                  ${verified ? 'border-l-emerald-500' : project.status === 'rejected' ? 'border-l-rose-500' : 'border-l-amber-500'}
+                  ${isDraft ? 'border-dashed border-slate-700 border-l-amber-500 bg-slate-900/10' : ''}
+                  ${verified ? 'border-l-emerald-500' : ''}
+                  ${project.status === 'rejected' ? 'border-l-rose-500' : ''}
+                  ${project.status === 'pending' ? 'border-l-amber-500' : ''}
                 `}
               >
                 {/* Header Information */}
@@ -116,6 +133,9 @@ export default function MyProjects() {
                     <div className="flex flex-wrap items-center gap-3">
                       <h3 className="text-lg font-bold text-white tracking-wide">{project.title}</h3>
                       <Badge status={project.status} />
+                      <span className="text-[10px] uppercase font-bold text-brand-400 px-2 py-0.5 rounded bg-brand-950/40 border border-brand-900/35">
+                        {restorationLabels[project.restoration_type] || project.restoration_type || 'Restoration Site'}
+                      </span>
                     </div>
                     <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-slate-400 font-medium">
                       <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-brand-400" /> {project.location_name || 'GIS Point'}</span>
@@ -124,7 +144,17 @@ export default function MyProjects() {
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-2 self-start md:self-center">
+                  <div className="flex items-center gap-3 self-start md:self-center">
+                    {isDraft && (
+                      <button
+                        onClick={() => handleEditDraft(project)}
+                        className="flex items-center gap-1 bg-brand-400 text-darkbg-300 font-bold px-3 py-1.5 rounded-lg text-xs uppercase hover:bg-brand-300 transition-colors"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        Edit Draft
+                      </button>
+                    )}
+                    
                     <button
                       onClick={() => toggleExpand(project.id)}
                       className="flex items-center gap-1.5 text-xs font-bold text-brand-400 hover:text-brand-300 py-1.5 px-3 rounded-lg bg-[#0c2227] border border-brand-400/10 transition-colors"
@@ -145,16 +175,17 @@ export default function MyProjects() {
                     {/* Grid Breakdown */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       
-                      {/* Left: Description & Info */}
+                      {/* Left & Center columns: Description, GIS boundaries */}
                       <div className="md:col-span-2 flex flex-col gap-4">
                         <div className="flex flex-col gap-1">
                           <span className="text-[10px] uppercase font-bold tracking-wider text-brand-400">Node Description</span>
-                          <p className="text-xs text-slate-300 leading-relaxed bg-[#070c0e]/30 p-3 rounded-xl border border-brand-500/5">
+                          <p className="text-xs text-slate-300 leading-relaxed bg-[#070c0e]/30 p-3.5 rounded-xl border border-brand-500/5">
                             {project.description || 'No description provided.'}
                           </p>
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-4">
+                        {/* Centroid coordinates & specs */}
+                        <div className="grid grid-cols-3 gap-4">
                           <div className="flex flex-col gap-0.5">
                             <span className="text-[9px] uppercase font-bold text-slate-500">Plantation Date</span>
                             <span className="text-xs text-slate-200 font-semibold flex items-center gap-1">
@@ -164,31 +195,53 @@ export default function MyProjects() {
                           </div>
                           
                           <div className="flex flex-col gap-0.5">
+                            <span className="text-[9px] uppercase font-bold text-slate-500">GIS Center Point</span>
+                            <span className="text-xs text-slate-200 font-mono font-semibold">
+                              {project.latitude ? `${parseFloat(project.latitude).toFixed(4)}, ${parseFloat(project.longitude).toFixed(4)}` : 'Not set'}
+                            </span>
+                          </div>
+
+                          <div className="flex flex-col gap-0.5">
                             <span className="text-[9px] uppercase font-bold text-slate-500">Registry ID</span>
-                            <span className="text-[10px] text-slate-400 font-mono select-all truncate">{project.id}</span>
+                            <span className="text-[9px] text-slate-400 font-mono select-all truncate">{project.id}</span>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Right: Images evidence */}
-                      <div className="flex flex-col gap-2">
-                        <span className="text-[10px] uppercase font-bold tracking-wider text-brand-400">Evidence Submissions</span>
-                        {project.images && project.images.length > 0 ? (
-                          <div className="grid grid-cols-2 gap-2">
-                            {project.images.map((img) => (
-                              <div key={img.id} className="relative rounded-lg overflow-hidden border border-brand-500/10 h-16 bg-[#070c0e]">
-                                <img src={img.image_url} alt="registry-docs" className="w-full h-full object-cover" />
-                                <span className="absolute bottom-0.5 left-0.5 bg-[#0c2227]/90 text-[7px] font-bold text-brand-300 uppercase tracking-widest px-1 py-0.2 rounded border border-brand-400/5">
-                                  {img.image_type}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-center p-6 border border-dashed border-brand-500/10 rounded-xl text-center text-xs text-slate-500">
-                            No photo evidence uploaded.
+                        {/* Interactive GIS Polygon Boundary Overlay */}
+                        {project.latitude && project.longitude && (
+                          <div className="flex flex-col gap-2 mt-2">
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-brand-400">GIS Boundary Polygon</span>
+                            <MapView 
+                              projects={[project]} 
+                              center={[parseFloat(project.latitude), parseFloat(project.longitude)]} 
+                              zoom={9}
+                              height="220px" 
+                            />
                           </div>
                         )}
+                      </div>
+
+                      {/* Right: Images/Evidence logs */}
+                      <div className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-2">
+                          <span className="text-[10px] uppercase font-bold tracking-wider text-brand-400">Evidence Submissions</span>
+                          {project.images && project.images.length > 0 ? (
+                            <div className="grid grid-cols-2 gap-2">
+                              {project.images.map((img) => (
+                                <div key={img.id} className="relative rounded-lg overflow-hidden border border-brand-500/10 h-16 bg-[#070c0e]">
+                                  <img src={img.image_url} alt="registry-docs" className="w-full h-full object-cover" />
+                                  <span className="absolute bottom-0.5 left-0.5 bg-[#0c2227]/90 text-[7px] font-bold text-brand-300 uppercase tracking-widest px-1.5 py-0.2 rounded border border-brand-400/5">
+                                    {img.image_type}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-center p-6 border border-dashed border-brand-500/10 rounded-xl text-center text-xs text-slate-500">
+                              No photo evidence uploaded.
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                     </div>

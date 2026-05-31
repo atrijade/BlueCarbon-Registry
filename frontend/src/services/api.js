@@ -5,13 +5,20 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
 });
 
-// Axios request interceptor to inject the Supabase JWT access token
+// Axios request interceptor to inject the JWT access token (mock or Supabase)
 api.interceptors.request.use(
   async (config) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session && session.access_token) {
-        config.headers.Authorization = `Bearer ${session.access_token}`;
+      // 1. Check if a mock token is set in localStorage
+      const token = localStorage.getItem('bluecarbon_token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      } else {
+        // 2. Fallback to Supabase token
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session && session.access_token) {
+          config.headers.Authorization = `Bearer ${session.access_token}`;
+        }
       }
     } catch (err) {
       console.error('Error fetching session token for API request:', err);
@@ -57,6 +64,17 @@ export const verificationService = {
 export const dashboardService = {
   getStats: async () => {
     const response = await api.get('/dashboard/stats');
+    return response.data;
+  }
+};
+
+export const authService = {
+  getPendingUsers: async () => {
+    const response = await api.get('/auth/pending-users');
+    return response.data;
+  },
+  approveUser: async (id) => {
+    const response = await api.put(`/auth/approve-user/${id}`);
     return response.data;
   }
 };

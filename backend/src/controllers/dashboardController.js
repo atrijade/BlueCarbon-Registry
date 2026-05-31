@@ -1,4 +1,5 @@
 const supabase = require('../config/supabase');
+const { logDbError } = require('../utils/logger');
 
 /**
  * Get dashboard metrics based on user role
@@ -14,7 +15,7 @@ async function getDashboardStats(req, res) {
       .select('id, user_id, status, area_hectares, title, latitude, longitude, species');
 
     if (projectError) {
-      console.error('Error fetching dashboard projects:', projectError);
+      logDbError('dashboardController: Fetching dashboard projects', projectError);
       return res.status(500).json({ success: false, error: 'Could not fetch dashboard metrics' });
     }
 
@@ -24,7 +25,7 @@ async function getDashboardStats(req, res) {
       .select('credits, status');
 
     if (creditError) {
-      console.error('Error fetching carbon credits for dashboard:', creditError);
+      logDbError('dashboardController: Fetching carbon credits', creditError);
     }
 
     // Calculations
@@ -71,7 +72,9 @@ async function getDashboardStats(req, res) {
           .select('credits')
           .in('project_id', userProjectIds);
         
-        if (!uCredErr && userCredits) {
+        if (uCredErr) {
+          logDbError('dashboardController: Fetching user project credits', uCredErr);
+        } else if (userCredits) {
           userCreditsCount = userCredits.reduce((sum, c) => sum + parseFloat(c.credits), 0);
         }
       }

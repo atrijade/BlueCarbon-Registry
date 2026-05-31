@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createProject, getMyProjects, getAllProjects, getProjectById } = require('../controllers/projectController');
+const { createProject, updateProject, getMyProjects, getAllProjects, getProjectById } = require('../controllers/projectController');
 const { protect, requireRole } = require('../middleware/authMiddleware');
 
 // All project routes require authentication
@@ -17,5 +17,8 @@ router.get('/', getAllProjects);
 
 // Create a new restoration project
 router.post('/', requireRole(['ngo', 'community', 'admin']), createProject);
+
+// Update/Edit draft project
+router.put('/:id', requireRole(['ngo', 'community', 'admin']), updateProject);
 
 module.exports = router;

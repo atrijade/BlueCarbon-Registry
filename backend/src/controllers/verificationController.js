@@ -1,4 +1,5 @@
 const supabase = require('../config/supabase');
+const { logDbError } = require('../utils/logger');
 
 /**
  * Submit a project verification (Approve or Reject)
@@ -23,6 +24,9 @@ async function submitVerification(req, res) {
       .single();
 
     if (fetchError || !project) {
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        logDbError('verificationController: Fetching project for verification', fetchError);
+      }
       return res.status(404).json({ success: false, error: 'Project not found' });
     }
 
@@ -39,7 +43,7 @@ async function submitVerification(req, res) {
       .single();
 
     if (verError || !verification) {
-      console.error('Error inserting verification:', verError);
+      logDbError('verificationController: Inserting verification record', verError);
       return res.status(500).json({ success: false, error: 'Could not write verification record' });
     }
 
@@ -66,7 +70,7 @@ async function submitVerification(req, res) {
         .single();
 
       if (creditError) {
-        console.error('Error creating carbon credits:', creditError);
+        logDbError('verificationController: Creating carbon credits', creditError);
       } else {
         creditsRecord = credits;
       }
@@ -88,7 +92,7 @@ async function submitVerification(req, res) {
         .single();
 
       if (chainError) {
-        console.error('Error creating blockchain log:', chainError);
+        logDbError('verificationController: Creating blockchain record log', chainError);
       } else {
         // BigInt JSON serialization fix
         blockchainRecord = {
@@ -132,7 +136,7 @@ async function getVerificationsForProject(req, res) {
       .order('verified_at', { ascending: false });
 
     if (error) {
-      console.error('Error getting verifications:', error);
+      logDbError('verificationController: getVerificationsForProject', error);
       return res.status(500).json({ success: false, error: 'Could not fetch verifications' });
     }
 

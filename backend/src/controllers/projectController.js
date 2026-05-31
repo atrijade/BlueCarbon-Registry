@@ -1,4 +1,5 @@
 const supabase = require('../config/supabase');
+const { logDbError } = require('../utils/logger');
 
 /**
  * Create a new Blue Carbon restoration project
@@ -14,6 +15,9 @@ async function createProject(req, res) {
       area_hectares,
       species,
       plantation_date,
+      status, // 'draft' or 'pending'
+      restoration_type, // 'mangrove', 'seagrass', 'salt_marsh'
+      boundary_polygon, // JSON array of coordinate points
       images // Array of { image_url, image_type }
     } = req.body;
 
@@ -34,13 +38,15 @@ async function createProject(req, res) {
         area_hectares: parseFloat(area_hectares),
         species,
         plantation_date: plantation_date || null,
-        status: 'pending' // default
+        status: status || 'draft', // default to draft
+        restoration_type: restoration_type || null,
+        boundary_polygon: boundary_polygon || null
       })
       .select()
       .single();
 
     if (projectError || !project) {
-      console.error('Error creating project:', projectError);
+      logDbError('projectController: createProject', projectError);
       return res.status(500).json({ success: false, error: 'Could not create project record' });
     }
 
@@ -59,8 +65,7 @@ async function createProject(req, res) {
         .select();
 
       if (imgError) {
-        console.error('Error uploading project images:', imgError);
-        // We don't fail the whole request, but return a message
+        logDbError('projectController: createProject images', imgError);
       } else {
         insertedImages = imgData;
       }
@@ -68,7 +73,7 @@ async function createProject(req, res) {
 
     res.status(201).json({
       success: true,
-      message: 'Project submitted successfully for verification',
+      message: status === 'draft' ? 'Project saved as draft' : 'Project submitted for audit review',
       data: {
         ...project,
         images: insertedImages
@@ -77,6 +82,110 @@ async function createProject(req, res) {
   } catch (error) {
     console.error('Create project server error:', error);
     res.status(500).json({ success: false, error: 'Server error during project creation' });
+  }
+}
+
+/**
+ * Update an existing project (useful for completing drafts)
+ */
+async function updateProject(req, res) {
+  try {
+    const { id } = req.params;
+    const {
+      title,
+      description,
+      location_name,
+      latitude,
+      longitude,
+      area_hectares,
+      species,
+      plantation_date,
+      status, // update 'draft' to 'pending'
+      restoration_type,
+      boundary_polygon,
+      images // Array of { image_url, image_type }
+    } = req.body;
+
+    // Fetch the project to verify ownership
+    const { data: existing, error: fetchErr } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchErr || !existing) {
+      if (fetchErr && fetchErr.code !== 'PGRST116') {
+        logDbError(`projectController: updateProject fetch ID ${id}`, fetchErr);
+      }
+      return res.status(404).json({ success: false, error: 'Project not found' });
+    }
+
+    if (existing.user_id !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Unauthorized to update this project' });
+    }
+
+    // Update project attributes
+    const { data: project, error: updateError } = await supabase
+      .from('projects')
+      .update({
+        title: title !== undefined ? title : existing.title,
+        description: description !== undefined ? description : existing.description,
+        location_name: location_name !== undefined ? location_name : existing.location_name,
+        latitude: latitude !== undefined ? (latitude ? parseFloat(latitude) : null) : existing.latitude,
+        longitude: longitude !== undefined ? (longitude ? parseFloat(longitude) : null) : existing.longitude,
+        area_hectares: area_hectares !== undefined ? parseFloat(area_hectares) : existing.area_hectares,
+        species: species !== undefined ? species : existing.species,
+        plantation_date: plantation_date !== undefined ? (plantation_date || null) : existing.plantation_date,
+        status: status !== undefined ? status : existing.status,
+        restoration_type: restoration_type !== undefined ? restoration_type : existing.restoration_type,
+        boundary_polygon: boundary_polygon !== undefined ? boundary_polygon : existing.boundary_polygon
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (updateError) {
+      logDbError(`projectController: updateProject update ID ${id}`, updateError);
+      return res.status(500).json({ success: false, error: 'Could not update project record' });
+    }
+
+    // If images array is supplied, sync it (delete old, insert new)
+    if (images && Array.isArray(images)) {
+      await supabase
+        .from('project_images')
+        .delete()
+        .eq('project_id', id);
+
+      if (images.length > 0) {
+        const imagesToInsert = images.map(img => ({
+          project_id: id,
+          image_url: img.image_url,
+          image_type: img.image_type || 'field'
+        }));
+        
+        await supabase
+          .from('project_images')
+          .insert(imagesToInsert);
+      }
+    }
+
+    // Fetch updated images
+    const { data: finalImages } = await supabase
+      .from('project_images')
+      .select('*')
+      .eq('project_id', id);
+
+    res.status(200).json({
+      success: true,
+      message: status === 'pending' ? 'Project draft submitted successfully' : 'Project draft updated',
+      data: {
+        ...project,
+        images: finalImages || []
+      }
+    });
+  } catch (error) {
+    console.error('Update project server error:', error);
+    res.status(500).json({ success: false, error: 'Server error updating project' });
   }
 }
 
@@ -95,7 +204,7 @@ async function getMyProjects(req, res) {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching user projects:', error);
+      logDbError('projectController: getMyProjects', error);
       return res.status(500).json({ success: false, error: 'Could not retrieve projects' });
     }
 
@@ -129,7 +238,7 @@ async function getAllProjects(req, res) {
     const { data: projects, error } = await query;
 
     if (error) {
-      console.error('Error fetching all projects:', error);
+      logDbError('projectController: getAllProjects', error);
       return res.status(500).json({ success: false, error: 'Could not retrieve registry projects' });
     }
 
@@ -162,7 +271,9 @@ async function getProjectById(req, res) {
       .single();
 
     if (error || !project) {
-      console.error('Error fetching project detail:', error);
+      if (error && error.code !== 'PGRST116') {
+        logDbError(`projectController: getProjectById ID ${id}`, error);
+      }
       return res.status(404).json({ success: false, error: 'Project not found' });
     }
 
@@ -175,6 +286,7 @@ async function getProjectById(req, res) {
 
 module.exports = {
   createProject,
+  updateProject,
   getMyProjects,
   getAllProjects,
   getProjectById

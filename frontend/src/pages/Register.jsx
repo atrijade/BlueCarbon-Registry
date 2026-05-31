@@ -15,6 +15,11 @@ export default function Register() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState('ngo'); // default role
+  
+  // NGO-specific states
+  const [organizationName, setOrganizationName] = useState('');
+  const [contactNumber, setContactNumber] = useState('');
+  const [location, setLocation] = useState('');
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -33,6 +38,10 @@ export default function Register() {
       return setError('Please fill in all fields');
     }
 
+    if ((role === 'ngo' || role === 'community') && (!organizationName || !contactNumber || !location)) {
+      return setError('Organization Name, Contact, and Location are required for this role');
+    }
+
     if (password !== confirmPassword) {
       return setError('Passwords do not match');
     }
@@ -45,14 +54,27 @@ export default function Register() {
     setSuccess('');
     setLoading(true);
 
-    const result = await signUp(email, password, name, role);
+    const additionalMetadata = (role === 'ngo' || role === 'community') ? {
+      organization_name: organizationName,
+      contact_number: contactNumber,
+      location: location,
+      is_approved: false // requires admin approval
+    } : {
+      is_approved: true // Admins/auditors auto-approved
+    };
+
+    const result = await signUp(email, password, name, role, additionalMetadata);
     setLoading(false);
 
     if (result.success) {
-      setSuccess('Account created successfully! Redirecting to login...');
+      setSuccess(
+        (role === 'ngo' || role === 'community')
+          ? 'Registration received! Redirecting to login. Note: Access requires admin approval.'
+          : 'Account created successfully! Redirecting to login...'
+      );
       setTimeout(() => {
         navigate('/login');
-      }, 2500);
+      }, 3500);
     } else {
       setError(result.error || 'Failed to register account.');
     }
@@ -118,6 +140,39 @@ export default function Register() {
                 required
               />
             </div>
+
+            {/* NGO/Community Organizational Details */}
+            {(role === 'ngo' || role === 'community') && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-brand-500/5 pt-4">
+                <Input
+                  id="organizationName"
+                  type="text"
+                  label="Organization Name"
+                  placeholder="e.g. Sundarbans Society"
+                  value={organizationName}
+                  onChange={(e) => setOrganizationName(e.target.value)}
+                  required
+                />
+                <Input
+                  id="contactNumber"
+                  type="text"
+                  label="Contact Number"
+                  placeholder="e.g. +91 9876543210"
+                  value={contactNumber}
+                  onChange={(e) => setContactNumber(e.target.value)}
+                  required
+                />
+                <Input
+                  id="location"
+                  type="text"
+                  label="Operating Location"
+                  placeholder="e.g. Delta Region"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  required
+                />
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input

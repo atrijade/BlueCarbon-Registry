@@ -1,4 +1,5 @@
 const supabase = require('../config/supabase');
+const { logDbError } = require('../utils/logger');
 
 /**
  * Middleware to verify Supabase JWT and attach user and role to the request
@@ -16,33 +17,61 @@ async function protect(req, res, next) {
       return res.status(401).json({ success: false, error: 'Not authorized, token missing' });
     }
 
-    // Verify token with Supabase Auth
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    let user;
+    let dbUser;
 
-    if (authError || !user) {
-      return res.status(401).json({ success: false, error: 'Session expired or invalid token' });
-    }
+    if (token.startsWith('mock_token_')) {
+      try {
+        // Decode base64 mock token to get cached profile details
+        const base64Str = token.replace('mock_token_', '');
+        const profileData = JSON.parse(Buffer.from(base64Str, 'base64').toString('utf-8'));
 
-    // Fetch user details and role from public.users table
-    const { data: dbUser, error: dbError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', user.id)
-      .single();
+        // Query the database to get the latest approved status and details
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', profileData.id)
+          .single();
 
-    if (dbError || !dbUser) {
-      // Fallback: If not present in public.users yet (e.g., sync trigger lag or manual insert needed)
-      // We will assume community role temporarily or throw an error. Let's return error or log it.
-      console.warn(`User ${user.id} not found in public.users table yet.`, dbError);
-      
-      // Let's create an ephemeral user profile object
-      req.user = {
-        id: user.id,
-        email: user.email,
-        name: user.user_metadata?.name || 'New User',
-        role: user.user_metadata?.role || 'community'
-      };
-      return next();
+        if (!error && data) {
+          dbUser = data;
+        } else {
+          dbUser = profileData;
+        }
+        user = { id: dbUser.id, email: dbUser.email };
+      } catch (err) {
+        return res.status(401).json({ success: false, error: 'Invalid authentication token structure' });
+      }
+    } else {
+      // Verify token with Supabase Auth
+      const { data: { user: supabaseUser }, error: authError } = await supabase.auth.getUser(token);
+
+      if (authError || !supabaseUser) {
+        return res.status(401).json({ success: false, error: 'Session expired or invalid token' });
+      }
+      user = supabaseUser;
+
+      // Fetch user details and role from public.users table
+      const { data, error: dbError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (dbError || !data) {
+        if (dbError) {
+          logDbError(`authMiddleware: Fetching user profile for ID ${user.id}`, dbError);
+        }
+        dbUser = {
+          id: user.id,
+          email: user.email,
+          name: user.user_metadata?.name || 'New User',
+          role: user.user_metadata?.role || 'community',
+          is_approved: false
+        };
+      } else {
+        dbUser = data;
+      }
     }
 
     // Attach user profile (with database-verified role) to req

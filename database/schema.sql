@@ -1,4 +1,4 @@
--- SQL Schema for BlueCarbon-Registry (Supabase PostgreSQL)
+-- Unified SQL Schema for BlueCarbon-Registry (Supabase PostgreSQL)
 -- Safe to execute in the Supabase SQL Editor.
 
 -- Enable UUID extension if not already enabled
@@ -10,6 +10,10 @@ CREATE TABLE IF NOT EXISTS public.users (
   name character varying NOT NULL,
   email character varying NOT NULL UNIQUE,
   role character varying NOT NULL CHECK (role::text = ANY (ARRAY['ngo'::character varying, 'admin'::character varying, 'auditor'::character varying, 'community'::character varying]::text[])),
+  organization_name character varying,
+  contact_number character varying,
+  location character varying,
+  is_approved boolean DEFAULT false,
   created_at timestamp without time zone DEFAULT now(),
   CONSTRAINT users_pkey PRIMARY KEY (id)
 );
@@ -20,6 +24,9 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 -- Create basic RLS policies for Users
 CREATE POLICY "Allow public read access to users profiles" ON public.users 
   FOR SELECT USING (true);
+
+CREATE POLICY "Allow users to insert their own profiles" ON public.users 
+  FOR INSERT WITH CHECK (auth.uid() = id);
 
 CREATE POLICY "Allow users to update their own profiles" ON public.users 
   FOR UPDATE USING (auth.uid() = id);
@@ -36,7 +43,9 @@ CREATE TABLE IF NOT EXISTS public.projects (
   area_hectares numeric,
   species character varying,
   plantation_date date,
-  status character varying DEFAULT 'pending'::character varying CHECK (status::text = ANY (ARRAY['pending'::character varying, 'under_review'::character varying, 'verified'::character varying, 'rejected'::character varying]::text[])),
+  status character varying DEFAULT 'draft'::character varying CHECK (status::text = ANY (ARRAY['draft'::character varying, 'pending'::character varying, 'under_review'::character varying, 'verified'::character varying, 'rejected'::character varying]::text[])),
+  restoration_type character varying CHECK (restoration_type = ANY (ARRAY['mangrove'::character varying, 'seagrass'::character varying, 'salt_marsh'::character varying]::text[])),
+  boundary_polygon jsonb,
   created_at timestamp without time zone DEFAULT now(),
   CONSTRAINT projects_pkey PRIMARY KEY (id),
   CONSTRAINT projects_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
@@ -51,8 +60,8 @@ CREATE POLICY "Allow public read access to projects" ON public.projects
 CREATE POLICY "Allow NGOs and Community members to insert their own projects" ON public.projects 
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Allow owners to update pending/rejected projects" ON public.projects 
-  FOR UPDATE USING (auth.uid() = user_id AND (status = 'pending' OR status = 'rejected' OR status = 'under_review'));
+CREATE POLICY "Allow owners to update draft/pending/rejected projects" ON public.projects 
+  FOR UPDATE USING (auth.uid() = user_id AND (status = 'draft' OR status = 'pending' OR status = 'rejected' OR status = 'under_review'));
 
 CREATE POLICY "Allow admins and auditors to update project status" ON public.projects 
   FOR UPDATE USING (
@@ -67,7 +76,7 @@ CREATE TABLE IF NOT EXISTS public.project_images (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   project_id uuid NOT NULL,
   image_url text NOT NULL,
-  image_type character varying CHECK (image_type::text = ANY (ARRAY['field'::character varying, 'drone'::character varying, 'satellite'::character varying]::text[])),
+  image_type character varying CHECK (image_type::text = ANY (ARRAY['field'::character varying, 'drone'::character varying, 'satellite'::character varying, 'document'::character varying]::text[])),
   uploaded_at timestamp without time zone DEFAULT now(),
   CONSTRAINT project_images_pkey PRIMARY KEY (id),
   CONSTRAINT project_images_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE
@@ -191,12 +200,31 @@ CREATE POLICY "Allow public read access to AI reports" ON public.ai_reports
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-  INSERT INTO public.users (id, name, email, role)
+  INSERT INTO public.users (
+    id, 
+    name, 
+    email, 
+    role,
+    organization_name,
+    contact_number,
+    location,
+    is_approved
+  )
   VALUES (
     new.id,
     COALESCE(new.raw_user_meta_data->>'name', 'New User'),
     new.email,
-    COALESCE(new.raw_user_meta_data->>'role', 'community')
+    COALESCE(new.raw_user_meta_data->>'role', 'community'),
+    new.raw_user_meta_data->>'organization_name',
+    new.raw_user_meta_data->>'contact_number',
+    new.raw_user_meta_data->>'location',
+    COALESCE(
+      (new.raw_user_meta_data->>'is_approved')::boolean, 
+      CASE 
+        WHEN COALESCE(new.raw_user_meta_data->>'role', 'community') IN ('admin', 'auditor') THEN true 
+        ELSE false 
+      END
+    )
   );
   RETURN NEW;
 END;
