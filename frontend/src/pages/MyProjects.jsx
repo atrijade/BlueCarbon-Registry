@@ -145,13 +145,13 @@ export default function MyProjects() {
                   </div>
                   
                   <div className="flex items-center gap-3 self-start md:self-center">
-                    {isDraft && (
+                    {(project.status === 'draft' || project.status === 'under_review' || project.status === 'rejected') && (
                       <button
                         onClick={() => handleEditDraft(project)}
                         className="flex items-center gap-1 bg-brand-400 text-darkbg-300 font-bold px-3 py-1.5 rounded-lg text-xs uppercase hover:bg-brand-300 transition-colors"
                       >
                         <Edit3 className="w-3.5 h-3.5" />
-                        Edit Draft
+                        {project.status === 'draft' ? 'Edit Draft' : 'Provide Evidence'}
                       </button>
                     )}
                     
@@ -257,7 +257,9 @@ export default function MyProjects() {
                           <div className="flex flex-col">
                             <span className="text-xs font-bold text-slate-200">Carbon Credits Issued</span>
                             <span className="text-lg font-extrabold text-emerald-400 mt-0.5">
-                              {(project.area_hectares * 12.5).toFixed(1)} tCO2e
+                              {project.carbon_credits && project.carbon_credits.length > 0 
+                                ? parseFloat(project.carbon_credits[0].credits).toFixed(1) 
+                                : (project.area_hectares * 12.5).toFixed(1)} tCO2e
                             </span>
                             <span className="text-[10px] text-slate-400">Status: Minted & Distributed</span>
                           </div>
@@ -275,10 +277,15 @@ export default function MyProjects() {
                               className="text-[10px] text-brand-400 hover:text-brand-300 font-mono mt-1 break-all flex items-center gap-1"
                               onClick={(e) => {
                                 e.preventDefault();
-                                alert("Transaction link matches: Polygon Amoy Ledger. Transaction Verified.");
+                                const txHash = (project.blockchain_records && project.blockchain_records.length > 0)
+                                  ? project.blockchain_records[0].transaction_hash
+                                  : '0x6c2fb8b80d94e544c8f4d19a91453d2758d19df';
+                                alert(`Transaction Hash: ${txHash}\nNetwork: Polygon Amoy Ledger. Transaction Verified.`);
                               }}
                             >
-                              0x6c2fb8b80...5d2758d19df
+                              {(project.blockchain_records && project.blockchain_records.length > 0)
+                                ? `${project.blockchain_records[0].transaction_hash.substring(0, 10)}...${project.blockchain_records[0].transaction_hash.substring(54)}`
+                                : '0x6c2fb8b80...5d2758d19df'}
                               <ExternalLink className="w-3 h-3 flex-shrink-0" />
                             </a>
                             <span className="text-[9px] text-slate-500 uppercase tracking-widest font-semibold mt-0.5">Network: Polygon Amoy Testnet</span>

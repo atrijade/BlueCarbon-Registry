@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { dashboardService } from '../services/api';
 import Card from '../components/common/Card';
 import MapView from '../components/maps/MapView';
+import CommunityDashboard from './CommunityDashboard';
 import { 
   TreePine, 
   Award, 
@@ -17,6 +18,10 @@ import { Link } from 'react-router-dom';
 
 export default function Dashboard() {
   const { profile } = useAuth();
+  
+  if (profile?.role === 'community') {
+    return <CommunityDashboard />;
+  }
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

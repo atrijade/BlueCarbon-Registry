@@ -51,6 +51,16 @@ async function submitVerification(req, res) {
     // However, to ensure local consistency in response, let's reflect that.
     const finalProjectStatus = status === 'approved' ? 'verified' : 'rejected';
 
+    // Explicit update fallback to ensure projects.status is updated in database
+    const { error: projectStatusError } = await supabase
+      .from('projects')
+      .update({ status: finalProjectStatus })
+      .eq('id', project_id);
+
+    if (projectStatusError) {
+      logDbError('verificationController: submitVerification project status update fallback', projectStatusError);
+    }
+
     let creditsRecord = null;
     let blockchainRecord = null;
 

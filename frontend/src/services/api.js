@@ -79,4 +79,78 @@ export const authService = {
   }
 };
 
+export const communityService = {
+  reportSite: async (siteData) => {
+    const response = await api.post('/community/sites', siteData);
+    return response.data;
+  },
+  getSites: async () => {
+    const response = await api.get('/community/sites');
+    return response.data;
+  },
+  submitObservation: async (obsData) => {
+    const response = await api.post('/community/observations', obsData);
+    return response.data;
+  },
+  getObservations: async () => {
+    const response = await api.get('/community/observations');
+    return response.data;
+  },
+  submitValidation: async (valData) => {
+    const response = await api.post('/community/validations', valData);
+    return response.data;
+  },
+  getValidationsForProject: async (projectId) => {
+    const response = await api.get(`/community/validations/project/${projectId}`);
+    return response.data;
+  },
+  submitComplaint: async (compData) => {
+    const response = await api.post('/community/complaints', compData);
+    return response.data;
+  },
+  getComplaints: async () => {
+    const response = await api.get('/community/complaints');
+    return response.data;
+  },
+  submitActivity: async (actData) => {
+    const response = await api.post('/community/activities', actData);
+    return response.data;
+  },
+  getActivities: async () => {
+    const response = await api.get('/community/activities');
+    return response.data;
+  },
+  askAiAssistant: async (question) => {
+    const response = await api.post('/community/ai/assistant', { question });
+    return response.data;
+  },
+  getAiSuggestions: async (latitude, longitude) => {
+    const response = await api.post('/community/ai/recommendation', { latitude, longitude });
+    return response.data;
+  }
+};
+
+export const auditorService = {
+  getProjects: async (status) => {
+    const response = await api.get('/auditor/projects', { params: { status } });
+    return response.data;
+  },
+  updateStatus: async (id, status) => {
+    const response = await api.put(`/auditor/projects/${id}/status`, { status });
+    return response.data;
+  },
+  getAnalysis: async (id) => {
+    const response = await api.get(`/auditor/projects/${id}/analysis`);
+    return response.data;
+  },
+  verifyProject: async (id, payload) => {
+    const response = await api.post(`/auditor/projects/${id}/verify`, payload);
+    return response.data;
+  },
+  generateReport: async (id) => {
+    const response = await api.post(`/auditor/projects/${id}/report`);
+    return response.data;
+  }
+};
+
 export default api;

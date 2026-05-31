@@ -198,7 +198,9 @@ async function getMyProjects(req, res) {
       .from('projects')
       .select(`
         *,
-        images:project_images(*)
+        images:project_images(*),
+        carbon_credits:carbon_credits(*),
+        blockchain_records:blockchain_records(*)
       `)
       .eq('user_id', req.user.id)
       .order('created_at', { ascending: false });

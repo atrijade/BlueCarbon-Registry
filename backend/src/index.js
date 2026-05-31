@@ -8,6 +8,8 @@ const projectRoutes = require('./routes/projectRoutes');
 const verificationRoutes = require('./routes/verificationRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const authRoutes = require('./routes/authRoutes');
+const communityRoutes = require('./routes/communityRoutes');
+const auditorRoutes = require('./routes/auditorRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -27,6 +29,8 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/verifications', verificationRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/community', communityRoutes);
+app.use('/api/auditor', auditorRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

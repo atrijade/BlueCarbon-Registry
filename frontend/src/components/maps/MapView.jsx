@@ -52,6 +52,7 @@ export default function MapView({ projects = [], height = '400px', center = [19.
           const statusColors = {
             draft: '#f59e0b',
             pending: '#f59e0b',
+            under_review: '#f59e0b',
             verified: '#10b981',
             rejected: '#f43f5e'
           };
@@ -93,6 +94,86 @@ export default function MapView({ projects = [], height = '400px', center = [19.
             </React.Fragment>
           );
         })}
+
+        {/* Render Community Overlay Markers if supplied */}
+        {projects.length === 1 && projects[0] && (
+          <>
+            {/* 1. Community Suggestions (Yellow) */}
+            {projects[0].communityOverlay?.sites?.map((site) => (
+              <Marker
+                key={`site-${site.id}`}
+                position={[parseFloat(site.latitude), parseFloat(site.longitude)]}
+                icon={new L.DivIcon({
+                  html: `<div style="width: 12px; height: 12px; border-radius: 50%; background-color: #f59e0b; border: 1.5px solid #fff; box-shadow: 0 0 6px #f59e0b;"></div>`,
+                  className: 'comm-site-marker',
+                  iconSize: [12, 12],
+                  iconAnchor: [6, 6]
+                })}
+              >
+                <Popup>
+                  <div className="p-1 flex flex-col gap-1 min-w-[160px]">
+                    <span className="text-[10px] font-bold text-amber-400 uppercase">Community Site Suggestion</span>
+                    <span className="font-bold text-slate-100 text-xs mt-0.5">{site.location_name}</span>
+                    <p className="text-[11px] text-slate-300 m-0 mt-1"><strong>Issue:</strong> {site.issue}</p>
+                    <p className="text-[11px] text-slate-350 m-0"><strong>Action:</strong> {site.suggested_action}</p>
+                    <span className="text-[9px] text-slate-500 mt-1">Reported by: {site.reporter_name}</span>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+
+            {/* 2. Community Observation logs (Blue) */}
+            {projects[0].communityOverlay?.observations?.map((obs) => (
+              <Marker
+                key={`obs-${obs.id}`}
+                position={[parseFloat(obs.latitude), parseFloat(obs.longitude)]}
+                icon={new L.DivIcon({
+                  html: `<div style="width: 12px; height: 12px; border-radius: 50%; background-color: #3b82f6; border: 1.5px solid #fff; box-shadow: 0 0 6px #3b82f6;"></div>`,
+                  className: 'comm-obs-marker',
+                  iconSize: [12, 12],
+                  iconAnchor: [6, 6]
+                })}
+              >
+                <Popup>
+                  <div className="p-1 flex flex-col gap-1 min-w-[160px]">
+                    <span className="text-[10px] font-bold text-blue-400 uppercase">Panchayat Observation Log</span>
+                    <p className="text-[11px] text-slate-200 m-0 mt-1 italic">"{obs.comments}"</p>
+                    <span className="text-[9px] text-slate-500 mt-1">Reported by: {obs.reporter_name} • {new Date(obs.created_at).toLocaleDateString()}</span>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+
+            {/* 3. Community Complaints (Red) */}
+            {projects[0].communityOverlay?.complaints?.map((comp) => (
+              <Marker
+                key={`comp-${comp.id}`}
+                position={[parseFloat(comp.latitude), parseFloat(comp.longitude)]}
+                icon={new L.DivIcon({
+                  html: `
+                    <div style="position: relative; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;">
+                      <div style="position: absolute; width: 14px; height: 14px; border-radius: 50%; background-color: rgba(244, 63, 94, 0.3); transform: scale(1.1); box-shadow: 0 0 4px rgba(244, 63, 94, 0.4);"></div>
+                      <div style="width: 8px; height: 8px; border-radius: 50%; background-color: #f43f5e; border: 1px solid #fff;"></div>
+                    </div>
+                  `,
+                  className: 'comm-comp-marker',
+                  iconSize: [18, 18],
+                  iconAnchor: [9, 9]
+                })}
+              >
+                <Popup>
+                  <div className="p-1 flex flex-col gap-1 min-w-[160px]">
+                    <span className="text-[10px] font-bold text-rose-400 uppercase">Community Incident Complaint</span>
+                    <span className="font-bold text-slate-100 text-xs mt-0.5 capitalize">{comp.issue_type.replace('_', ' ')}</span>
+                    <p className="text-[11px] text-slate-350 m-0 mt-1"><strong>Severity:</strong> <span className="uppercase text-rose-300 font-bold">{comp.severity}</span></p>
+                    <p className="text-[11px] text-slate-200 m-0">{comp.description}</p>
+                    <span className="text-[9px] text-slate-500 mt-1">Filer: {comp.reporter_name}</span>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+          </>
+        )}
       </MapContainer>
     </div>
   );
