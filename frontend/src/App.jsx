@@ -11,15 +11,17 @@ import Dashboard from './pages/Dashboard';
 import CreateProject from './pages/CreateProject';
 import MyProjects from './pages/MyProjects';
 import AdminDashboard from './pages/AdminDashboard';
+import PublicProjectVerification from './pages/PublicProjectVerification';
 
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Public Authentication routes */}
+          {/* Public routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/project/:id" element={<PublicProjectVerification />} />
 
           {/* Protected Main routes, wrapped in Layout */}
           <Route 

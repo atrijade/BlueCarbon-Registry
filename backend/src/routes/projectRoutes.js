@@ -3,6 +3,9 @@ const router = express.Router();
 const { createProject, updateProject, getMyProjects, getAllProjects, getProjectById } = require('../controllers/projectController');
 const { protect, requireRole } = require('../middleware/authMiddleware');
 
+// Get project by ID (public route)
+router.get('/public/:id', getProjectById);
+
 // All project routes require authentication
 router.use(protect);
 

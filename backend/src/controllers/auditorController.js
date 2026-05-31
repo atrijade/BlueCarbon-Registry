@@ -1,5 +1,6 @@
 const supabase = require('../config/supabase');
 const { logDbError } = require('../utils/logger');
+const { verifyProjectOnChain } = require('../utils/blockchainService');
 
 // Helper: Haversine distance in km
 function getDistance(lat1, lon1, lat2, lon2) {
@@ -53,7 +54,9 @@ async function getAuditorProjects(req, res) {
       .select(`
         *,
         user:users(name, email, role),
-        images:project_images(*)
+        images:project_images(*),
+        blockchain_records(*),
+        carbon_credits(*)
       `)
       .order('created_at', { ascending: false });
 
@@ -462,18 +465,18 @@ async function verifyProject(req, res) {
         creditsRecord = credits;
       }
 
-      // Blockchain transaction simulation
-      const mockTxHash = '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-      const mockContract = '0x889812A2f893979B6A1A70366D1B6fCdAC3023e1';
+      // Smart Contract Verification On Chain (Phase 6)
+      console.log(`[Blockchain] Calling smart contract verification for project: ${id}`);
+      const txResult = await verifyProjectOnChain(id, creditsAmount, 'approved');
 
       const { data: chainLog, error: chainError } = await supabase
         .from('blockchain_records')
         .insert({
           project_id: id,
-          transaction_hash: mockTxHash,
-          contract_address: mockContract,
-          network: 'Polygon Amoy',
-          block_number: 35000000n + BigInt(Math.floor(Math.random() * 500000))
+          transaction_hash: txResult.transactionHash,
+          contract_address: txResult.contractAddress,
+          network: txResult.network,
+          block_number: BigInt(txResult.blockNumber)
         })
         .select()
         .single();
@@ -619,10 +622,23 @@ Our AI Fraud and Missing Evidence Detection Agents analyzed the submitted assets
   }
 }
 
+async function getContractState(req, res) {
+  try {
+    const { id } = req.params;
+    const { readContractState } = require('../utils/blockchainService');
+    const state = await readContractState(id);
+    return res.status(200).json({ success: true, data: state });
+  } catch (err) {
+    console.error('Server error in getContractState:', err);
+    return res.status(500).json({ success: false, error: 'Could not read contract state' });
+  }
+}
+
 module.exports = {
   getAuditorProjects,
   updateProjectStatus,
   getProjectAnalysis,
   verifyProject,
-  generateAiAuditReport
+  generateAiAuditReport,
+  getContractState
 };

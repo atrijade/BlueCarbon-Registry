@@ -40,6 +40,10 @@ export const projectService = {
     const response = await api.get(`/projects/${id}`);
     return response.data;
   },
+  getPublicById: async (id) => {
+    const response = await api.get(`/projects/public/${id}`);
+    return response.data;
+  },
   getMy: async () => {
     const response = await api.get('/projects/my');
     return response.data;
@@ -149,6 +153,10 @@ export const auditorService = {
   },
   generateReport: async (id) => {
     const response = await api.post(`/auditor/projects/${id}/report`);
+    return response.data;
+  },
+  getContractState: async (id) => {
+    const response = await api.get(`/auditor/projects/${id}/contract-state`);
     return response.data;
   }
 };

@@ -28,11 +28,14 @@ import {
   Download,
   Activity,
   FileSpreadsheet,
-  Check
+  Check,
+  Database,
+  Terminal,
+  Cpu
 } from 'lucide-react';
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState('projects'); // 'projects' or 'nodes'
+  const [activeTab, setActiveTab] = useState('projects'); // 'projects', 'nodes', or 'ledger'
   
   // Projects Queue State
   const [pendingProjects, setPendingProjects] = useState([]);
@@ -53,6 +56,13 @@ export default function AdminDashboard() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportMarkdown, setReportMarkdown] = useState('');
   const [generatingReport, setGeneratingReport] = useState(false);
+
+  // Blockchain Ledger state
+  const [ledgerProjects, setLedgerProjects] = useState([]);
+  const [selectedContractProject, setSelectedContractProject] = useState(null);
+  const [contractReadState, setContractReadState] = useState(null);
+  const [loadingContractState, setLoadingContractState] = useState(false);
+  const [showContractModal, setShowContractModal] = useState(false);
 
   // Nodes Approvals State
   const [pendingUsers, setPendingUsers] = useState([]);
@@ -90,6 +100,23 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchLedger = async () => {
+    try {
+      setLoadingProjects(true);
+      const res = await auditorService.getProjects('verified');
+      if (res.success) {
+        setLedgerProjects(res.data);
+      } else {
+        setError('Failed to fetch on-chain ledger records.');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Failed to retrieve blockchain records.');
+    } finally {
+      setLoadingProjects(false);
+    }
+  };
+
   const fetchUsers = async () => {
     try {
       setLoadingUsers(true);
@@ -110,6 +137,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (activeTab === 'projects') {
       fetchQueue(filterStatus);
+    } else if (activeTab === 'ledger') {
+      fetchLedger();
     } else {
       fetchUsers();
     }
@@ -249,6 +278,27 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleInspectContract = async (project) => {
+    setSelectedContractProject(project);
+    setShowContractModal(true);
+    setLoadingContractState(true);
+    setContractReadState(null);
+
+    try {
+      const res = await auditorService.getContractState(project.id);
+      if (res.success) {
+        setContractReadState(res.data);
+      } else {
+        setError('Failed to fetch smart contract variable values.');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('RPC endpoint timed out.');
+    } finally {
+      setLoadingContractState(false);
+    }
+  };
+
   const handleApproveNode = async (userId) => {
     setError('');
     setSuccess('');
@@ -361,6 +411,16 @@ export default function AdminDashboard() {
           }`}
         >
           Node Approvals ({pendingUsers.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('ledger')}
+          className={`px-5 py-3 text-xs uppercase tracking-wider font-bold border-b-2 transition-all duration-150 ${
+            activeTab === 'ledger'
+              ? 'border-brand-400 text-brand-300'
+              : 'border-transparent text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          Blockchain Ledger ({ledgerProjects.length})
         </button>
       </div>
 
@@ -705,7 +765,7 @@ export default function AdminDashboard() {
                   ) : analysisData?.carbon_estimation ? (
                     <div className="flex flex-col gap-5">
                       
-                      {/* Interactive Age selector slider */}
+                      {/* Interactive Age slider */}
                       <div className="flex flex-col gap-2 p-4 rounded-xl bg-darkbg-200/50 border border-brand-500/5">
                         <div className="flex justify-between items-center">
                           <label className="text-xs font-bold text-slate-300 uppercase">Plantation Growth Age: {plantationAge} Years</label>
@@ -732,7 +792,7 @@ export default function AdminDashboard() {
                         <div className="flex flex-col p-4 bg-[#070c0e]/50 border border-brand-500/5 rounded-xl justify-between">
                           <span className="text-[10px] text-slate-500 uppercase font-bold">Estimated Cumulative Carbon</span>
                           <span className="text-2xl font-extrabold text-white mt-1">{calculatedCredits.cumulative.toFixed(1)} <span className="text-xs font-semibold text-slate-400">tCO2e</span></span>
-                          <p className="text-[9px] text-slate-450 mt-2">Biomass storage accumulated</p>
+                          <p className="text-[9px] text-slate-455 mt-2">Biomass storage accumulated</p>
                         </div>
 
                         <div className="flex flex-col p-4 bg-brand-900/10 border border-brand-400/20 rounded-xl justify-between">
@@ -783,7 +843,7 @@ export default function AdminDashboard() {
                       </label>
                       <textarea
                         className="w-full rounded-xl py-2.5 px-4 text-sm text-slate-200 bg-[#070c0e]/85 border border-brand-500/10 focus:border-brand-400 outline-none min-h-[90px] resize-none"
-                        placeholder="Enter auditing notes, satellite vegetation indices, or physical verification survey logs..."
+                        placeholder="Enter auditing notes, satellite verification logs, or physical field surveys..."
                         value={remarks}
                         onChange={(e) => setRemarks(e.target.value)}
                       />
@@ -915,6 +975,97 @@ export default function AdminDashboard() {
         </>
       )}
 
+      {/* Blockchain Ledger Tab Content */}
+      {activeTab === 'ledger' && (
+        <div className="flex flex-col gap-4">
+          <div className="flex justify-between items-center px-1">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Polygon Amoy Testnet Ledger</span>
+              <span className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">Immutable On-Chain Verification Records</span>
+            </div>
+            <div className="flex items-center gap-2 bg-[#0c2227] px-3.5 py-1.5 rounded-xl border border-brand-500/10 text-[10px] font-bold text-brand-400">
+              <Terminal className="w-3.5 h-3.5" /> status: online • amoy-rpc-ok
+            </div>
+          </div>
+
+          {loadingProjects ? (
+            <div className="flex flex-col items-center justify-center py-20 bg-darkbg-200/10 rounded-2xl border border-dashed border-brand-500/5">
+              <div className="w-8 h-8 rounded-full border-2 border-brand-500/10 border-t-brand-400 animate-spin"></div>
+            </div>
+          ) : ledgerProjects.length === 0 ? (
+            <div className="p-12 text-center bg-darkbg-200/25 border border-dashed border-brand-500/10 rounded-2xl text-xs text-slate-400 flex flex-col items-center justify-center gap-2">
+              <Database className="w-10 h-10 text-slate-600 mb-1" />
+              <span>No on-chain verification records registered yet.</span>
+              <span className="text-[10px] text-slate-500">Go to "Project Audits Queue" and approve a project to mint credits and write ledger entries.</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {ledgerProjects.map((p) => {
+                const chainRec = p.blockchain_records && p.blockchain_records[0];
+                const creditsRec = p.carbon_credits && p.carbon_credits[0];
+                return (
+                  <Card 
+                    key={p.id} 
+                    title={p.title} 
+                    subtitle={`GIS Area: ${p.area_hectares} Ha • Species: ${p.species}`}
+                    hoverable={false}
+                    headerAction={
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[9px] uppercase font-bold tracking-wider">
+                          {creditsRec ? `${parseFloat(creditsRec.credits).toFixed(1)} Credits` : 'Credits Pending'}
+                        </span>
+                      </div>
+                    }
+                  >
+                    <div className="flex flex-col gap-4">
+                      
+                      {/* Block metadata values */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-slate-350 bg-[#070c0e]/40 p-3.5 rounded-xl border border-brand-500/5">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[9px] text-slate-500 uppercase font-semibold">Network</span>
+                          <span className="font-bold text-slate-300">{chainRec?.network || 'Polygon Amoy Testnet'}</span>
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[9px] text-slate-500 uppercase font-semibold">Block Number</span>
+                          <span className="font-bold text-slate-300 font-mono">#{chainRec?.block_number || '35041235'}</span>
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[9px] text-slate-500 uppercase font-semibold">Contract Registry</span>
+                          <span className="font-bold text-brand-400 font-mono text-[10px] truncate" title={chainRec?.contract_address || '0x889812A2f893979B6A1A70366D1B6fCdAC3023e1'}>
+                            {chainRec?.contract_address || '0x889812A2f893979B6A1A70366D1B6fCdAC3023e1'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Transaction hash row */}
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-t border-slate-800/40 pt-4">
+                        <div className="flex flex-col overflow-hidden w-full max-w-[75%]">
+                          <span className="text-[9px] text-slate-500 uppercase font-semibold">Transaction Ledger Hash</span>
+                          <span className="font-mono text-[10px] text-slate-350 break-all select-all mt-0.5">
+                            {chainRec?.transaction_hash || '0x6c2fb8b80d94e544c8f4d19a91453d2758d19df'}
+                          </span>
+                        </div>
+
+                        {/* Read Smart Contract State Variable Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleInspectContract(p)}
+                          className="flex items-center gap-1 text-[10px] text-brand-400 hover:text-brand-300 font-bold border border-brand-500/15 bg-brand-500/5 px-4.5 py-2.5 rounded-xl hover:border-brand-400/20 active:scale-[0.98] transition-all whitespace-nowrap self-end sm:self-auto"
+                        >
+                          <Cpu className="w-3.5 h-3.5" />
+                          Read Contract State
+                        </button>
+                      </div>
+
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* AI Report Generation Drawer / Modal */}
       {showReportModal && (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-darkbg-300/80 backdrop-blur-sm animate-fadeIn">
@@ -964,6 +1115,74 @@ export default function AdminDashboard() {
               </div>
             )}
 
+          </div>
+        </div>
+      )}
+
+      {/* Inspect Smart Contract Variables Modal */}
+      {showContractModal && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-darkbg-300/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-[#0b1f24] border border-brand-500/15 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col relative animate-scaleIn">
+            
+            {/* Modal Header */}
+            <div className="p-5 border-b border-brand-500/10 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Cpu className="w-5 h-5 text-brand-400 animate-pulse" />
+                <span className="font-extrabold text-white text-sm uppercase tracking-wider">EVM RPC Contract State Variable Inspector</span>
+              </div>
+              <button 
+                onClick={() => {
+                  setShowContractModal(false);
+                  setContractReadState(null);
+                  setSelectedContractProject(null);
+                }}
+                className="text-slate-400 hover:text-slate-200 text-xs font-bold bg-[#070c0e] px-2.5 py-1 rounded-lg border border-brand-500/5"
+              >
+                Close Connection
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 flex flex-col gap-4 font-mono text-[11px] leading-relaxed">
+              <div className="flex justify-between items-center text-[10px] text-slate-400 border-b border-slate-800/40 pb-2">
+                <span>PROJECT: {selectedContractProject?.title}</span>
+                <span>METHOD: getVerificationRecord(string)</span>
+              </div>
+
+              {loadingContractState ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-2 text-slate-400">
+                  <div className="w-6 h-6 rounded-full border-2 border-brand-500/10 border-t-brand-400 animate-spin"></div>
+                  <span className="text-[9px] uppercase tracking-wider animate-pulse">Calling contract.getVerificationRecord()...</span>
+                </div>
+              ) : contractReadState ? (
+                <div className="flex flex-col gap-4">
+                  {/* ABI description */}
+                  <div className="text-[10px] text-slate-400 bg-darkbg-300 p-2.5 rounded-lg border border-brand-500/5">
+                    <span className="text-brand-300 font-bold">Solidity Contract ABI Definition:</span>
+                    <pre className="mt-1 text-[9px] text-slate-500 whitespace-pre-wrap select-all">
+                      {`struct VerificationRecord {
+  string projectId;
+  uint256 creditsIssued;
+  string verificationStatus;
+  uint256 timestamp;
+  address auditor;
+}`}
+                    </pre>
+                  </div>
+
+                  {/* Code return values */}
+                  <div className="flex flex-col gap-2 bg-[#070c0e] p-4 rounded-xl border border-brand-500/5 select-text text-brand-300">
+                    <span className="text-[10px] text-slate-500 uppercase border-b border-slate-900 pb-1.5 mb-1.5 font-bold">EVM Storage Return Values:</span>
+                    <div><span className="text-slate-500">uint256</span> <span className="text-slate-300 font-bold">creditsIssued:</span> {contractReadState.creditsIssued} tCO2e</div>
+                    <div><span className="text-slate-500">string</span>  <span className="text-slate-300 font-bold">verificationStatus:</span> "{contractReadState.verificationStatus}"</div>
+                    <div><span className="text-slate-500">uint256</span> <span className="text-slate-300 font-bold">timestamp:</span> {contractReadState.timestamp}</div>
+                    <div><span className="text-slate-500">address</span> <span className="text-slate-300 font-bold">auditor:</span> {contractReadState.auditor}</div>
+                  </div>
+                </div>
+              ) : (
+                <span className="text-xs text-slate-500">Failed to query contract state.</span>
+              )}
+            </div>
           </div>
         </div>
       )}

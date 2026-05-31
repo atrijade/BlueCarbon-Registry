@@ -1,5 +1,6 @@
 const supabase = require('../config/supabase');
 const { logDbError } = require('../utils/logger');
+const { verifyProjectOnChain } = require('../utils/blockchainService');
 
 /**
  * Submit a project verification (Approve or Reject)
@@ -85,18 +86,17 @@ async function submitVerification(req, res) {
         creditsRecord = credits;
       }
 
-      // Generate a mock Polygon transaction hash for the ledger demo
-      const mockTxHash = '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-      const mockContract = '0x889812A2f893979B6A1A70366D1B6fCdAC3023e1';
+      // Smart Contract Verification On Chain (Phase 6)
+      const txResult = await verifyProjectOnChain(project_id, calculatedCredits, 'approved');
       
       const { data: chainLog, error: chainError } = await supabase
         .from('blockchain_records')
         .insert({
           project_id,
-          transaction_hash: mockTxHash,
-          contract_address: mockContract,
-          network: 'Polygon Amoy',
-          block_number: 35000000n + BigInt(Math.floor(Math.random() * 500000))
+          transaction_hash: txResult.transactionHash,
+          contract_address: txResult.contractAddress,
+          network: txResult.network,
+          block_number: BigInt(txResult.blockNumber)
         })
         .select()
         .single();

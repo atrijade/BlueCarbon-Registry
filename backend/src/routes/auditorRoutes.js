@@ -6,7 +6,8 @@ const {
   updateProjectStatus,
   getProjectAnalysis,
   verifyProject,
-  generateAiAuditReport
+  generateAiAuditReport,
+  getContractState
 } = require('../controllers/auditorController');
 
 // All auditor routes require authentication and auditor/admin roles
@@ -27,5 +28,8 @@ router.post('/projects/:id/verify', verifyProject);
 
 // 5. PDF/Markdown report generator
 postReportHandler = router.post('/projects/:id/report', generateAiAuditReport);
+
+// 6. Smart contract state read RPC emulation
+router.get('/projects/:id/contract-state', getContractState);
 
 module.exports = router;

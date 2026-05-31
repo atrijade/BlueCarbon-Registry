@@ -9,6 +9,9 @@
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\""
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "concurrently": "^8.2.2",
+    "dotenv": "^17.4.2",
+    "hardhat": "^2.22.5"
   }
 }
