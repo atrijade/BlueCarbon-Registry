@@ -80,6 +80,18 @@ export const authService = {
   approveUser: async (id) => {
     const response = await api.put(`/auth/approve-user/${id}`);
     return response.data;
+  },
+  getAllUsers: async () => {
+    const response = await api.get('/auth/users');
+    return response.data;
+  },
+  updateUserStatus: async (id, isApproved) => {
+    const response = await api.put(`/auth/users/${id}/status`, { is_approved: isApproved });
+    return response.data;
+  },
+  updateUserRole: async (id, role) => {
+    const response = await api.put(`/auth/users/${id}/role`, { role });
+    return response.data;
   }
 };
 
