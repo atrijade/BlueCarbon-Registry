@@ -12,7 +12,7 @@ export default function ProtectedRoute({ children, allowedRoles }) {
           <div className="w-16 h-16 rounded-full border-4 border-brand-500/10 border-t-brand-400 animate-spin"></div>
           <div className="absolute inset-0 w-16 h-16 rounded-full border border-brand-300/5 animate-ping"></div>
         </div>
-        <p className="mt-4 text-brand-300 font-medium tracking-widest text-sm animate-pulse">LOADING TIDELEDGER...</p>
+        <p className="mt-4 text-brand-300 font-medium tracking-widest text-sm animate-pulse">LOADING BLUECARBON-REGISTRY...</p>
       </div>
     );
   }

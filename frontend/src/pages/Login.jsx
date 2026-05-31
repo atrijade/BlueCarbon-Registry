@@ -47,7 +47,7 @@ export default function Login() {
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-400 to-teal-500 flex items-center justify-center glow-cyan animate-float">
             <Waves className="w-8 h-8 text-darkbg-300" />
           </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-wider">TideLedger</h1>
+          <h1 className="text-3xl font-extrabold text-white tracking-wider">BlueCarbon-Registry</h1>
           <p className="text-xs uppercase tracking-widest text-brand-400 font-bold">Blue Carbon MRV Registry</p>
         </div>
 
@@ -55,7 +55,7 @@ export default function Login() {
         <Card hoverable={false} className="shadow-2xl">
           <div className="flex flex-col gap-1 mb-6 text-center">
             <h2 className="text-xl font-bold text-slate-100">Welcome Back</h2>
-            <p className="text-xs text-slate-400">Access your TideLedger nodes & dashboard</p>
+            <p className="text-xs text-slate-400">Access your BlueCarbon-Registry nodes & dashboard</p>
           </div>
 
           {error && (
@@ -69,7 +69,7 @@ export default function Login() {
               id="email"
               type="email"
               label="Email Address"
-              placeholder="e.g. auditor@tideledger.org"
+              placeholder="e.g. auditor@bluecarbon-registry.org"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               icon={Mail}
@@ -96,7 +96,7 @@ export default function Login() {
           <div className="mt-6 pt-5 border-t border-brand-500/10 flex gap-2.5 text-[11px] text-slate-400">
             <ShieldCheck className="w-4 h-4 text-brand-400 flex-shrink-0 mt-0.5" />
             <p>
-              TideLedger enforces role-based access control. Connect your community, NGO, or authorized Auditor accounts.
+              BlueCarbon-Registry enforces role-based access control. Connect your community, NGO, or authorized Auditor accounts.
             </p>
           </div>
         </Card>

@@ -1,7 +1,7 @@
 {
-  "name": "tideledger-backend",
+  "name": "bluecarbon-registry-backend",
   "version": "1.0.0",
-  "description": "TideLedger MRV Platform Backend API Server",
+  "description": "BlueCarbon-Registry MRV Platform Backend API Server",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
@@ -9,11 +9,11 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.43.4",
+    "bluecarbon-registry": "file:..",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "morgan": "^1.10.0",
-    "tideledger-mrv": "file:..",
     "ws": "^8.21.0"
   },
   "devDependencies": {

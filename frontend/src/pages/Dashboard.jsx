@@ -134,7 +134,7 @@ export default function Dashboard() {
 
       {/* 2. Role-specific Actions Panel */}
       {profile && (profile.role === 'ngo' || profile.role === 'community') && userMetrics && (
-        <Card title="My Node Summary" subtitle="Submissions & performance on TideLedger" hoverable={false} className="shadow-lg">
+        <Card title="My Node Summary" subtitle="Submissions & performance on BlueCarbon-Registry" hoverable={false} className="shadow-lg">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div className="flex flex-col p-4 rounded-xl bg-[#070c0e]/50 border border-brand-500/5">
               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">My Restoration Area</span>

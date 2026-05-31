@@ -70,7 +70,7 @@ export default function Layout({ children }) {
         <Link to="/dashboard" className="flex items-center gap-2">
           <Waves className="w-7 h-7 text-brand-400" />
           <span className="font-extrabold text-lg tracking-wider bg-gradient-to-r from-brand-300 via-brand-400 to-teal-400 bg-clip-text text-transparent">
-            TideLedger
+            BlueCarbon-Registry
           </span>
         </Link>
         <button 
@@ -95,7 +95,7 @@ export default function Layout({ children }) {
               <Waves className="w-6 h-6 text-darkbg-300" />
             </div>
             <div className="flex flex-col">
-              <span className="font-extrabold text-xl tracking-wider text-white">TideLedger</span>
+              <span className="font-extrabold text-xl tracking-wider text-white">BlueCarbon-Registry</span>
               <span className="text-[10px] tracking-widest text-brand-400 uppercase font-semibold">MRV REGISTRY</span>
             </div>
           </div>

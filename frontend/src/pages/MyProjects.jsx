@@ -87,7 +87,7 @@ export default function MyProjects() {
           <FolderOpen className="w-16 h-16 text-slate-600 mb-4 animate-float" />
           <h3 className="text-lg font-bold text-slate-100">No Submitted Nodes</h3>
           <p className="text-xs text-slate-400 mt-2 max-w-sm">
-            You haven't registered any restoration locations on TideLedger yet. Create your first mangrove or seagrass monitoring site to begin.
+            You haven't registered any restoration locations on BlueCarbon-Registry yet. Create your first mangrove or seagrass monitoring site to begin.
           </p>
           <Link to="/projects/create" className="mt-6">
             <Button variant="primary" size="sm">

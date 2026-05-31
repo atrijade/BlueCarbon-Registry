@@ -31,13 +31,13 @@ app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'healthy',
     timestamp: new Date(),
-    service: 'TideLedger MRV Platform Backend API'
+    service: 'BlueCarbon-Registry MRV Platform Backend API'
   });
 });
 
 // Root endpoint
 app.get('/', (req, res) => {
-  res.send('TideLedger Blue Carbon MRV Registry API is running.');
+  res.send('BlueCarbon-Registry Blue Carbon MRV Registry API is running.');
 });
 
 // 404 Route handler
@@ -53,6 +53,6 @@ app.use(errorHandler);
 // Start server
 app.listen(PORT, () => {
   console.log(`=================================================`);
-  console.log(`🌊 TideLedger Backend API Server running on port ${PORT}`);
+  console.log(`🌊 BlueCarbon-Registry Backend API Server running on port ${PORT}`);
   console.log(`=================================================`);
 });

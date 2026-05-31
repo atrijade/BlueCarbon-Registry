@@ -70,7 +70,7 @@ export default function Register() {
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-400 to-teal-500 flex items-center justify-center glow-cyan">
             <Waves className="w-7 h-7 text-darkbg-300" />
           </div>
-          <h1 className="text-2xl font-extrabold text-white tracking-wider">TideLedger Registry</h1>
+          <h1 className="text-2xl font-extrabold text-white tracking-wider">BlueCarbon-Registry</h1>
           <p className="text-[10px] uppercase tracking-widest text-brand-400 font-bold">Register a New Node</p>
         </div>
 
@@ -78,7 +78,7 @@ export default function Register() {
         <Card hoverable={false} className="shadow-2xl">
           <div className="flex flex-col gap-1 mb-6 text-center">
             <h2 className="text-xl font-bold text-slate-100 font-sans">Create Credentials</h2>
-            <p className="text-xs text-slate-400">Establish your keys & identity on TideLedger</p>
+            <p className="text-xs text-slate-400">Establish your keys & identity on BlueCarbon-Registry</p>
           </div>
 
           {error && (

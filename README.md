@@ -1,6 +1,6 @@
-# TideLedger - Blue Carbon MRV Platform
+# BlueCarbon-Registry - Blue Carbon MRV Platform
 
-TideLedger is a Blue Carbon MRV platform with an Express backend, a Vite + React frontend, and Supabase for authentication and data storage.
+BlueCarbon-Registry is a Blue Carbon MRV platform with an Express backend, a Vite + React frontend, and Supabase for authentication and data storage.
 
 ## Tech Stack
 

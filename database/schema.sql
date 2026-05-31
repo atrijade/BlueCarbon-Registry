@@ -1,4 +1,4 @@
--- SQL Schema for TideLedger (Supabase PostgreSQL)
+-- SQL Schema for BlueCarbon-Registry (Supabase PostgreSQL)
 -- Safe to execute in the Supabase SQL Editor.
 
 -- Enable UUID extension if not already enabled
